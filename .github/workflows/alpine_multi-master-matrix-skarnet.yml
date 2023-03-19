@@ -1,0 +1,108 @@
+name: skarnet.org ninja - latest master matrix
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: write-all
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ninja]
+        os_id: [alpine]
+        os_version_id: [edge]
+        arch: [aarch64-linux-musl_h3-12.2.0.tar.xz,
+              aarch64-linux-musl_kryo485-12.2.0.tar.xz,
+              aarch64-linux-musl_pi3-12.2.0.tar.xz,
+              aarch64-linux-musl_pi4-12.2.0.tar.xz,
+              arm-linux-musleabi_genericv7a-12.2.0.tar.xz,
+              arm-linux-musleabi_o3-12.2.0.tar.xz,
+              arm-linux-musleabi_p7-12.2.0.tar.xz,
+              arm-linux-musleabihf_c1+-12.2.0.tar.xz,
+              arm-linux-musleabihf_pi1-12.2.0.tar.xz,
+              arm-linux-musleabihf_u3-12.2.0.tar.xz,
+              i486-linux-musl_i486-12.2.0.tar.xz,
+              i686-linux-musl_i686-12.2.0.tar.xz,
+              powerpc64-linux-musl_talos-12.2.0.tar.xz,
+              powerpc64le-linux-musl_talosel-12.2.0.tar.xz,
+              riscv64-linux-musl_rocket-12.2.0.tar.xz,
+              s390x-linux-musl_z196-12.2.0.tar.xz,
+              x86_64-linux-musl_pc-12.2.0.tar.xz]
+
+    name: ${{ matrix.arch }}
+
+    env:
+      CDN: http://dl-cdn.alpinelinux.org/alpine/edge/main/
+
+    steps:
+      - uses: actions/checkout@v3
+        
+      - name: Bootstrap skarnet.org toolchains
+        run: |
+          curl -sLO https://skarnet.org/toolchains/cross/${{ matrix.arch }}
+          tar xf ${{ matrix.arch }} --strip-components=1 -C "$(pwd)"
+          release_asset="${{ matrix.arch }}"
+          carch="${{ matrix.arch }}" carch="${carch%_*}"
+          echo "release_asset=${release_asset%-*}" >> $GITHUB_ENV
+
+          echo "PATH=/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" > env.custom
+          echo "LDFLAGS=-s -static --static" >> env.custom
+          echo "CHOST=${carch}" >> env.custom
+          echo "CC=${carch}-gcc" >> env.custom
+          echo "AR=${carch}-ar" >> env.custom
+          echo "CXX=${carch%}-g++" >> env.custom
+
+      - name: Docker multiarch bootstrap
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Create docker multiarch ${{ matrix.docker_arch }} container
+        run: docker run --name multiarch -it -d --env-file env.custom -w /root -v ${{ github.workspace }}:/root alpine:edge
+
+      - name: Run apk update
+        run: docker exec multiarch apk update --repository="${{ env.CDN }}"
+
+      - name: Run apk upgrade
+        run: docker exec multiarch apk upgrade --repository="${{ env.CDN }}"
+
+      - name: Run apk to install the core build dependencies
+        run: docker exec multiarch apk add build-base git curl linux-headers cmake re2c
+
+      - name: Create tag env
+        run: echo "ninja_github_tag=$(curl -sL "https://raw.githubusercontent.com/ninja-build/ninja/master/src/version.cc" | sed -rn 's|const char\* kNinjaVersion = "(.*)";|\1|p' | sed 's/\.git//g')" >> $GITHUB_ENV
+
+      - name: Host - Git clone ${{ matrix.name }}
+        run: git clone --no-tags --single-branch --branch master --depth=1 "https://github.com/ninja-build/ninja.git" "${{ matrix.name }}"
+
+      - name: Configure ${{ matrix.name }}
+        run: > 
+            docker exec -w /root/${{ matrix.name }} multiarch cmake -B build
+            -D CMAKE_BUILD_TYPE="release"
+            -D CMAKE_CXX_STANDARD="17"
+            -D CMAKE_INSTALL_PREFIX="/root"
+
+      - name: Cmake Build ${{ matrix.name }}
+        run: docker exec -w /root/${{ matrix.name }} multiarch cmake --build build
+
+      - name: Cmake Install ${{ matrix.name }}
+        run: docker exec -w /root/${{ matrix.name }} multiarch cmake --install build
+
+      - name: Rename ${{ matrix.name }} to ${{ env.release_asset }}
+        run: docker exec multiarch mv -f /root/bin/${{ matrix.name }} /root/bin/${{ env.release_asset }}
+
+      - name: "Create release"
+        uses: ncipollo/release-action@v1
+        with:
+          prerelease: false
+          artifacts: bin/${{ env.release_asset }}
+          replacesArtifacts: true
+          tag: ${{ env.ninja_github_tag }}
+          name: ${{ matrix.name }} ${{ env.ninja_github_tag }}
+          allowUpdates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
