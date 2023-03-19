@@ -16,8 +16,6 @@ jobs:
       fail-fast: false
       matrix:
         name: [ninja]
-        os_id: [alpine]
-        os_version_id: [edge]
         arch: [aarch64-linux-musl_h3-12.2.0.tar.xz,
               aarch64-linux-musl_kryo485-12.2.0.tar.xz,
               aarch64-linux-musl_pi3-12.2.0.tar.xz,

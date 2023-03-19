@@ -16,8 +16,6 @@ jobs:
       fail-fast: false
       matrix:
         name: [ninja]
-        os_id: [alpine]
-        os_version_id: [edge]
         arch:
           [
             aarch64-linux-musl,
