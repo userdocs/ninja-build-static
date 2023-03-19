@@ -16,23 +16,26 @@ jobs:
       fail-fast: false
       matrix:
         name: [ninja]
-        arch: [aarch64-linux-musl_h3-12.2.0.tar.xz,
-              aarch64-linux-musl_kryo485-12.2.0.tar.xz,
-              aarch64-linux-musl_pi3-12.2.0.tar.xz,
-              aarch64-linux-musl_pi4-12.2.0.tar.xz,
-              arm-linux-musleabi_genericv7a-12.2.0.tar.xz,
-              arm-linux-musleabi_o3-12.2.0.tar.xz,
-              arm-linux-musleabi_p7-12.2.0.tar.xz,
-              arm-linux-musleabihf_c1+-12.2.0.tar.xz,
-              arm-linux-musleabihf_pi1-12.2.0.tar.xz,
-              arm-linux-musleabihf_u3-12.2.0.tar.xz,
-              i486-linux-musl_i486-12.2.0.tar.xz,
-              i686-linux-musl_i686-12.2.0.tar.xz,
-              powerpc64-linux-musl_talos-12.2.0.tar.xz,
-              powerpc64le-linux-musl_talosel-12.2.0.tar.xz,
-              riscv64-linux-musl_rocket-12.2.0.tar.xz,
-              s390x-linux-musl_z196-12.2.0.tar.xz,
-              x86_64-linux-musl_pc-12.2.0.tar.xz]
+        arch:
+          [
+            aarch64-linux-musl_h3-12.2.0.tar.xz,
+            aarch64-linux-musl_kryo485-12.2.0.tar.xz,
+            aarch64-linux-musl_pi3-12.2.0.tar.xz,
+            aarch64-linux-musl_pi4-12.2.0.tar.xz,
+            arm-linux-musleabi_genericv7a-12.2.0.tar.xz,
+            arm-linux-musleabi_o3-12.2.0.tar.xz,
+            arm-linux-musleabi_p7-12.2.0.tar.xz,
+            arm-linux-musleabihf_c1+-12.2.0.tar.xz,
+            arm-linux-musleabihf_pi1-12.2.0.tar.xz,
+            arm-linux-musleabihf_u3-12.2.0.tar.xz,
+            i486-linux-musl_i486-12.2.0.tar.xz,
+            i686-linux-musl_i686-12.2.0.tar.xz,
+            powerpc64-linux-musl_talos-12.2.0.tar.xz,
+            powerpc64le-linux-musl_talosel-12.2.0.tar.xz,
+            riscv64-linux-musl_rocket-12.2.0.tar.xz,
+            s390x-linux-musl_z196-12.2.0.tar.xz,
+            x86_64-linux-musl_pc-12.2.0.tar.xz,
+          ]
 
     name: ${{ matrix.arch }}
 
@@ -41,7 +44,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        
+
       - name: Bootstrap skarnet.org toolchains
         run: |
           curl -sLO https://skarnet.org/toolchains/cross/${{ matrix.arch }}
@@ -79,11 +82,11 @@ jobs:
         run: git clone --no-tags --single-branch --branch master --depth=1 "https://github.com/ninja-build/ninja.git" "${{ matrix.name }}"
 
       - name: Configure ${{ matrix.name }}
-        run: > 
-            docker exec -w /root/${{ matrix.name }} multiarch cmake -B build
-            -D CMAKE_BUILD_TYPE="release"
-            -D CMAKE_CXX_STANDARD="17"
-            -D CMAKE_INSTALL_PREFIX="/root"
+        run: >
+          docker exec -w /root/${{ matrix.name }} multiarch cmake -B build
+          -D CMAKE_BUILD_TYPE="release"
+          -D CMAKE_CXX_STANDARD="17"
+          -D CMAKE_INSTALL_PREFIX="/root"
 
       - name: Cmake Build ${{ matrix.name }}
         run: docker exec -w /root/${{ matrix.name }} multiarch cmake --build build
