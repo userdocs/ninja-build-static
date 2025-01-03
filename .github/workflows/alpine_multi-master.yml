@@ -59,7 +59,7 @@ jobs:
         run: git clone --no-tags --single-branch --branch master --depth=1 "https://github.com/ninja-build/ninja.git" "${{ matrix.name }}"
 
       - name: Host - Set Master Git Tag
-        run: echo "ninja_github_tag=$(cat ${{ matrix.name }}/master/src/version.cc" | sed -rn 's|const char\* kNinjaVersion = "(.*)";|\1|p' | sed 's/\.git//g')" >> $GITHUB_ENV
+        run: echo "ninja_github_tag=$(cat ${{ matrix.name }}/src/version.cc" | sed -rn 's|const char\* kNinjaVersion = "(.*)";|\1|p' | sed 's/\.git//g')" >> $GITHUB_ENV
 
       - name: Configure ${{ matrix.name }}
         run: >
@@ -77,3 +77,14 @@ jobs:
 
       - name: Rename ${{ matrix.name }} to ${{ matrix.name }}-${{ matrix.arch }}
         run: docker exec multiarch mv -f /root/bin/${{ matrix.name }} /root/bin/${{ matrix.name }}-${{ matrix.arch }}
+
+      - name: "Create release"
+        uses: ncipollo/release-action@v1
+        with:
+          prerelease: false
+          artifacts: bin/${{ matrix.name }}-${{ matrix.arch }}
+          replacesArtifacts: true
+          tag: ${{ env.ninja_github_tag }}
+          name: ${{ matrix.name }} ${{ env.ninja_github_tag }}
+          allowUpdates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
