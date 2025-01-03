@@ -55,11 +55,12 @@ jobs:
       - name: Run apk to install the core build dependencies
         run: docker exec multiarch apk add build-base git curl linux-headers cmake re2c
 
+      - name: Host - Set latest Git Tag
+        run: echo "ninja_github_tag=$(git ls-remote -qt --refs https://github.com/ninja-build/ninja.git | awk '/v/{sub("refs/tags/", "");sub("refs/tags/(.*)(-[^0-9].*)(.*)", ""); print $2 }' | awk '!/^$/' | sort -rV | head -n 1)" >> $GITHUB_ENV
+
       - name: Host - Git clone ${{ matrix.name }}
         run: git clone --no-tags --single-branch --branch "${{ env.ninja_github_tag }}" --depth=1 "https://github.com/ninja-build/ninja.git" "${{ matrix.name }}"
 
-      - name: Host - Set latest Git Tag
-        run: echo "ninja_github_tag=$(git ls-remote -qt --refs https://github.com/ninja-build/ninja.git | awk '/v/{sub("refs/tags/", "");sub("refs/tags/(.*)(-[^0-9].*)(.*)", ""); print $2 }' | awk '!/^$/' | sort -rV | head -n 1)" >> $GITHUB_ENV
 
       - name: Configure ${{ matrix.name }}
         run: >
