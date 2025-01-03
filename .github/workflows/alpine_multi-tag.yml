@@ -65,7 +65,6 @@ jobs:
       - name: Host - Git clone ${{ matrix.name }}
         run: git clone --no-tags --single-branch --branch "${{ env.ninja_github_tag }}" --depth=1 "https://github.com/ninja-build/ninja.git" "${{ matrix.name }}"
 
-
       - name: Configure ${{ matrix.name }}
         run: >
           docker exec -w /root/${{ matrix.name }} multiarch cmake -B build
