@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Host - checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Host - update
         run: sudo apt-get update
